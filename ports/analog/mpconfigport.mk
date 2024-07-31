@@ -7,11 +7,30 @@
 CHIP_FAMILY ?= max32
 
 # Necessary to build CircuitPython
-USB_NUM_ENDPOINT_PAIRS := 0
+# USB_NUM_ENDPOINT_PAIRS := 0
 LONGINT_IMPL ?= MPZ
-INTERNAL_LIBM ?= 1
+# INTERNAL_LIBM ?= 1
 
-# These modules are implemented in ports/<port>/common-hal:
+# Extra disables to get to good build
+CIRCUITPY_ARRAY = 0
+CIRCUITPY_BOARD = 0
+CIRCUITPY_COLLECTIONS = 0
+CIRCUITPY_FUTURE = 0
+CIRCUITPY_MATH = 0
+CIRCUITPY_OPT_LOAD_ATTR_FAST_PATH = 0
+CIRCUITPY_PWMIO = 0
+CIRCUITPY_RAINBOWIO = 0
+CIRCUITPY_SAFEMODE_PY = 0
+CIRCUITPY_STATUS_BAR = 0
+CIRCUITPY_STORAGE = 0
+CIRCUITPY_STRUCT = 0
+CIRCUITPY_SUPERVISOR = 0
+CIRCUITPY_SYS = 0
+CIRCUITPY_TIME = 0
+CIRCUITPY_USB_CDC_CONSOLE_ENABLED_DEFAULT = 0
+CIRCUITPY_WIFI_RADIO_SETTABLE_MAC_ADDRESS = 0
+DISABLE_FILESYSTEM = 1
+
 
 # Typically the first module to create
 CIRCUITPY_MICROCONTROLLER = 0
@@ -35,6 +54,10 @@ CIRCUITPY_FREQUENCYIO = 0
 CIRCUITPY_I2CTARGET = 0
 # Requires SPI, PulseIO (stub ok):
 CIRCUITPY_DISPLAYIO = 0
+
+# Most ports will enable this early for testing. Starting without USB for now.
+CIRCUITPY_USB_DEVICE = 0
+CIRCUITPY_STORAGE = 0
 
 # These modules are implemented in shared-module/ - they can be included in
 # any port once their prerequisites in common-hal are complete.
