@@ -1,0 +1,14 @@
+
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "py/mpconfig.h"
+
+#ifdef MAX32690
+#define INTERNAL_FLASH_FILESYSTEM_SIZE 0x100000 // 1024KiB
+#define INTERNAL_FLASH_FILESYSTEM_START_ADDR 0x10300000
+#endif
+
+#define INTERNAL_FLASH_FILESYSTEM_NUM_BLOCKS (INTERNAL_FLASH_FILESYSTEM_SIZE / FILESYSTEM_BLOCK_SIZE)

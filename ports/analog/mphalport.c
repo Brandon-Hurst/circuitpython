@@ -1,13 +1,15 @@
-#pragma once
 
 #include "mphalport.h"
+#include "cmsis_gcc.h"
 
-// FIXME: Provide def
+
+// TODO: Define tick & other port functions
+
+
 void mp_hal_disable_all_interrupts(void) {
-    return;
+    __disable_irq();
 }
 
-// FIXME: Provide def
 void mp_hal_enable_all_interrupts(void) {
-    return;
+    __enable_irq();
 }

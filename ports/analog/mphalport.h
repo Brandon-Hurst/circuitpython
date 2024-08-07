@@ -10,5 +10,11 @@
 #include "lib/oofatfs/ff.h"
 #include "supervisor/shared/tick.h"
 
+// TODO: Define tick & other port functions
+
+
+void mp_hal_set_interrupt_char(int c);
+
+
 void mp_hal_disable_all_interrupts(void);
 void mp_hal_enable_all_interrupts(void);

@@ -33,14 +33,12 @@
 #include "supervisor/port.h"
 
 #include <stdio.h>
-#include "gpio.h"
-#include "led.h"
+// #include "gpio.h"
 #include "mxc_assert.h"
 #include "mxc_delay.h"
 #include "mxc_device.h"
 #include "mxc_pins.h"
 #include "mxc_sys.h"
-#include "pb.h"
 #include "uart.h"
 
 /** Linker variables defined....
@@ -51,64 +49,111 @@
 extern uint32_t _ezero;
 extern uint32_t _estack;
 extern uint32_t _ebss; // Stored at the end of the bss section (which includes the heap).
+extern uint32_t _ld_heap_start, _ld_heap_end, _ld_stack_top, _ld_stack_bottom;
 
+// defined by cmsis core files
+void NVIC_SystemReset(void) NORETURN;
 
 safe_mode_t port_init(void) {
-    int err;
-
-    // Initialize SysTick
-    MXC_SYS_ClockEnable();
-
-    // Enable GPIO / Periph clocks
-    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_GPIO0);
-    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_GPIO1);
-
-    if ((err = PB_Init()) != E_NO_ERROR) {
-        MXC_ASSERT_FAIL();
-        return err;
-    }
-
-    if ((err = LED_Init()) != E_NO_ERROR) {
-        MXC_ASSERT_FAIL();
-        return err;
-    }
-
     return SAFE_MODE_NONE;
 }
 
-void reset_cpi(void) {
+void HAL_Delay(uint32_t delay_ms) {
+}
+
+uint32_t HAL_GetTick(void) {
+    return 1000;
+}
+
+void SysTick_Handler(void) {
+}
+
+void reset_to_bootloader(void) {
+    NVIC_SystemReset();
+}
+
+
+void reset_cpu(void) {
     NVIC_SystemReset();
 }
 
 void reset_port(void) {
-    MXC_GPIO_Reset(MXC_GPIO0);
-    MXC_GPIO_Reset(MXC_GPIO1);
+    // MXC_GPIO_Reset(MXC_GPIO0);
+    // MXC_GPIO_Reset(MXC_GPIO1);
 }
 
-__attribute__((used)) void MemManage_Handler(void) {
-    reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
-    while (true) {
-        asm ("nop;");
-    }
+uint32_t *port_heap_get_bottom(void) {
+    return (uint32_t *)0xAAAAAAAA;
 }
 
-__attribute__((used)) void BusFault_Handler(void) {
-    reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
-    while (true) {
-        asm ("nop;");
-    }
+uint32_t *port_heap_get_top(void) {
+    return (uint32_t *)0xAAAAAAAF;
 }
 
-__attribute__((used)) void UsageFault_Handler(void) {
-    reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
-    while (true) {
-        asm ("nop;");
-    }
+uint32_t *port_stack_get_limit(void) {
+    #pragma GCC diagnostic push
+
+    #pragma GCC diagnostic ignored "-Warray-bounds"
+    // return port_stack_get_top() - (CIRCUITPY_DEFAULT_STACK_SIZE + CIRCUITPY_EXCEPTION_STACK_SIZE) / sizeof(uint32_t);
+    return port_stack_get_top() - (0 + 0) / sizeof(uint32_t);
+    #pragma GCC diagnostic pop
 }
 
-__attribute__((used)) void HardFault_Handler(void) {
-    reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
-    while (true) {
-        asm ("nop;");
-    }
+uint32_t *port_stack_get_top(void) {
+    return (uint32_t *)0xB000000;
+}
+
+
+// Place the word to save just after our BSS section that gets blanked.
+void port_set_saved_word(uint32_t value) {
+    _ebss = value;
+}
+
+uint32_t port_get_saved_word(void) {
+    return _ebss;
+}
+
+// __attribute__((used)) void MemManage_Handler(void) {
+//     reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
+//     while (true) {
+//         asm ("nop;");
+//     }
+// }
+
+// __attribute__((used)) void BusFault_Handler(void) {
+//     reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
+//     while (true) {
+//         asm ("nop;");
+//     }
+// }
+
+// __attribute__((used)) void UsageFault_Handler(void) {
+//     reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
+//     while (true) {
+//         asm ("nop;");
+//     }
+// }
+
+// __attribute__((used)) void HardFault_Handler(void) {
+//     reset_into_safe_mode(SAFE_MODE_HARD_FAULT);
+//     while (true) {
+//         asm ("nop;");
+//     }
+// }
+
+uint64_t port_get_raw_ticks(uint8_t *subticks) {
+    return 1000;
+}
+
+// Enable 1/1024 second tick.
+void port_enable_tick(void) {
+}
+
+// Disable 1/1024 second tick.
+void port_disable_tick(void) {
+}
+
+// Required by __libc_init_array in startup code if we are compiling using
+// -nostdlib/-nostartfiles.
+void _init(void) {
 }

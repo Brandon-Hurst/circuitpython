@@ -16,7 +16,7 @@
 // 24kiB stack
 #define CIRCUITPY_DEFAULT_STACK_SIZE            0x6000
 // uint8_t _ld_default_stack_size;
-//#define CIRCUITPY_DEFAULT_STACK_SIZE            ((uint32_t)&_ld_default_stack_size)
+// #define CIRCUITPY_DEFAULT_STACK_SIZE            ((uint32_t)&_ld_default_stack_size)
 
 #include "py/circuitpy_mpconfig.h"
 
@@ -33,8 +33,3 @@
 #ifndef BOARD_NO_USB_OTG_ID_SENSE
 #define BOARD_NO_USB_OTG_ID_SENSE (0)
 #endif
-
-// Peripheral implementation counts
-#define MAX_UART 10
-#define MAX_I2C 4
-#define MAX_SPI 6
