@@ -153,6 +153,14 @@ void port_enable_tick(void) {
 void port_disable_tick(void) {
 }
 
+void port_interrupt_after_ticks(uint32_t ticks) {
+    // todo: implement isr after rtc ticks
+}
+
+void port_idle_until_interrupt(void) {
+    __WFI();
+}
+
 // Required by __libc_init_array in startup code if we are compiling using
 // -nostdlib/-nostartfiles.
 void _init(void) {

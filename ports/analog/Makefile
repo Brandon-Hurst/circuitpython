@@ -80,7 +80,7 @@ INC += \
 
 INC += -I$(CMSIS_ROOT)/Device/Maxim/$(MCU_VARIANT_UPPER)/Source/GCC
 
-SRC_C += \
+SRC_MAX32 += \
 	$(CMSIS_ROOT)/Device/Maxim/$(MCU_VARIANT_UPPER)/Source/heap.c \
 	$(CMSIS_ROOT)/Device/Maxim/$(MCU_VARIANT_UPPER)/Source/system_$(MCU_VARIANT_LOWER).c \
 	$(PERIPH_SRC)/SYS/mxc_assert.c \
@@ -104,34 +104,46 @@ SRC_C += \
 	$(PERIPH_SRC)/UART/uart_$(DIE_TYPE).c \
 	$(PERIPH_SRC)/UART/uart_revb.c \
 
+SRC_C += $(SRC_MAX32) \
+			boards/$(BOARD)/board.c \
+			boards/$(BOARD)/pins.c \
+			peripherals/$(MCU_VARIANT_LOWER)/pins.c \
+
 # *******************************************************************************
 ### Compiler & Linker Flags ###
 COMPILER ?= GCC
 
 ifeq ($(COMPILER), GCC)
-STARTUPFILE = $(CMSIS_ROOT)/Device/Maxim/$(MCU_VARIANT_UPPER)/Source/GCC/startup_$(MCU_VARIANT_LOWER).s
-LINKERFILE = $(CMSIS_ROOT)/Device/Maxim/$(MCU_VARIANT_UPPER)/Source/GCC/$(MCU_VARIANT_LOWER).ld
-LDFLAGS += -nostartfiles --specs=nosys.specs --specs=nano.specs
+
+# STARTUPFILE = $(CMSIS_ROOT)/Device/Maxim/$(MCU_VARIANT_UPPER)/Source/GCC/startup_$(MCU_VARIANT_LOWER).s
+STARTUPFILE = $(ADI_BOARD_DIR)/Source/startup_$(MCU_VARIANT_LOWER).s
+
+# LINKERFILE = $(CMSIS_ROOT)/Device/Maxim/$(MCU_VARIANT_UPPER)/Source/GCC/$(MCU_VARIANT_LOWER).ld
+LINKERFILE = linking/$(MCU_VARIANT_LOWER).ld
+LDFLAGS += -nostartfiles -specs=nosys.specs -specs=nano.specs
 endif
 
-SRC_S += $(STARTUPFILE)
+SRC_S += supervisor/cpu.s \
+			$(STARTUPFILE)
 
 # Needed to compile some MAX32 headers
 CFLAGS += -D$(MCU_VARIANT_UPPER) \
 			-DTARGET_REV=0x4131 \
 			-DTARGET=$(MCU_VARIANT_UPPER) \
-			-DFLASH_ORIGIN=0x10000000 \
-			-DFLASH_SIZE=0x340000 \
-			-DSRAM_ORIGIN=0x20000000 \
-			-DSRAM_SIZE=0x100000 \
 			-DIAR_PRAGMAS=0 \
+			# -DFLASH_ORIGIN=0x10000000 \
+			# -DFLASH_SIZE=0x340000 \
+			# -DSRAM_ORIGIN=0x20000000 \
+			# -DSRAM_SIZE=0x100000 \
 
 CFLAGS +=	-Wno-error=unused-parameter \
 				-Wno-error=strict-prototypes \
 				-Wno-error=old-style-declaration \
 				-Wno-error=sign-compare \
+				-Wno-sign-compare \
 				-Wno-error=cast-qual \
 				-Wno-lto-type-mismatch \
+				-Wno-unused-variable \
 
 CPU_CORE=cortex-m4
 CFLAGS += -mthumb -mcpu=$(CPU_CORE) -mfloat-abi=hard -mfpu=fpv4-sp-d16
@@ -148,29 +160,14 @@ else
 COPT += -O2
 endif
 
-# TODO: Add TUSB in
+
+# TODO: Add for TinyUSB once our PR goes through for MAX32 devices
 # TinyUSB CFLAGS
 # CFLAGS += \
 # 	DCFG_TUSB_MCU=OPT_MCU_MAX32690 \
 # 	-DBOARD_TUD_MAX_SPEED=OPT_MODE_HIGH_SPEED
-
-LDFLAGS = $(CFLAGS) -Wl,-nostdlib -Wl,-T,$(LINKERFILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
-LIBS := -lgcc -lc -lnosys
-
-# If not using CKTPY mathlib, use toolchain mathlib
-ifndef INTERNAL_LIBM
-LIBS += -lm
-endif
-
-
-# *******************************************************************************
-
-
-# TODO: TinyUSB Includes once USB is ready
 # INC += -I../../lib/tinyusb/src
 # INC += -I../../supervisor/shared/usb
-
-# TODO: Add source files for TinyUSB once the PR goes through
 # SRC_C += lib/tinyusb/src/portable/mentor/musb/dcd_musb.c
 
 SRC_C += \
@@ -181,6 +178,14 @@ SRC_C += \
 CFLAGS += $(INC) -Wall -std=gnu11 -nostartfiles $(BASE_CFLAGS) $(COPT)
 # CFLAGS += $(CFLAGS_MOD)
 
+LDFLAGS += $(CFLAGS) -Wl,-nostdlib -Wl,-T,$(LINKERFILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections
+LIBS := -lgcc -lc
+
+# If not using CKTPY mathlib, use toolchain mathlib
+ifndef INTERNAL_LIBM
+LIBS += -lm
+endif
+
 # *******************************************************************************
 ### PORT-DEFINED BUILD RULES ###
 # This section attempts to build the Python core, the supervisor, and any
@@ -189,17 +194,23 @@ CFLAGS += $(INC) -Wall -std=gnu11 -nostartfiles $(BASE_CFLAGS) $(COPT)
 # QSTR sources are provided for the initial build step, which generates
 # Python constants to represent C data which gets passed into the GC.
 
-# TODO: Start adding port-defined Common HAL components
-# SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
-#                           $(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \
-#                           $(addprefix common-hal/, $(SRC_COMMON_HAL))
+SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
+                          $(addprefix shared-bindings/, $(SRC_BINDINGS_ENUMS)) \
+                          $(addprefix common-hal/, $(SRC_COMMON_HAL))
 
-# SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE)) \
-#                              $(addprefix shared-module/, $(SRC_SHARED_MODULE)) \
-#                              $(addprefix shared-module/, $(SRC_SHARED_MODULE_INTERNAL))
+# TODO: Start adding share module components once most core modules are ready
+SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE)) \
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE)) \
+                             $(addprefix shared-module/, $(SRC_SHARED_MODULE_INTERNAL))
+
+# There may be duplicates between SRC_COMMON_HAL_EXPANDED and SRC_SHARED_MODULE_EXPANDED,
+# because a few modules have files both in common-hal/ and shared-module/.
+# Doing a $(sort ...) removes duplicates as part of sorting.
+SRC_COMMON_HAL_SHARED_MODULE_EXPANDED = $(sort $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED))
 
 # OBJ includes
 OBJ += $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_SHARED_MODULE_EXPANDED:.c=.o))
 # OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_EXPANDED:.c=.o))
 # OBJ += $(addprefix $(BUILD)/, $(SRC_SHARED_MODULE_EXPANDED:.c=.o))
 ifeq ($(INTERNAL_LIBM),1)
@@ -207,11 +218,12 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
 endif
 OBJ += $(addprefix $(BUILD)/, $(SRC_CIRCUITPY_COMMON:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
-# OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
+OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
 
 # List of sources for qstr extraction
-SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_CIRCUITPY_COMMON)
-# SRC_QSTR += $(SRC_MOD) $(SRC_COMMON_HAL_EXPANDED) $(SRC_SHARED_MODULE_EXPANDED)
+SRC_QSTR += $(SRC_C) $(SRC_SUPERVISOR) $(SRC_CIRCUITPY_COMMON) \
+			$(SRC_COMMON_HAL_EXPANDED) $(SRC_MOD)
+SRC_QSTR += $(SRC_SHARED_MODULE_EXPANDED)
 
 # Sources that only hold QSTRs after pre-processing.
 SRC_QSTR_PREPROCESSOR +=

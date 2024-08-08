@@ -18,6 +18,7 @@
 // uint8_t _ld_default_stack_size;
 // #define CIRCUITPY_DEFAULT_STACK_SIZE            ((uint32_t)&_ld_default_stack_size)
 
+// Also includes mpconfigboard.h
 #include "py/circuitpy_mpconfig.h"
 
 // Board flags:
