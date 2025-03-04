@@ -25,8 +25,6 @@
 
 picodvi_framebuffer_obj_t *active_picodvi = NULL;
 
-static PIO pio_instances[2] = {pio0, pio1};
-
 static void __not_in_flash_func(core1_main)(void) {
     // The MPU is reset before this starts.
 
@@ -143,7 +141,7 @@ void common_hal_picodvi_framebuffer_construct(picodvi_framebuffer_obj_t *self,
 
     // If the width is > 400, then it must not be color frame buffer and vice
     // versa.
-    if ((width > 400) == color_framebuffer || color_depth == 4) {
+    if ((width > 400) == color_framebuffer || color_depth == 4 || color_depth == 32) {
         mp_raise_ValueError_varg(MP_ERROR_TEXT("Invalid %q"), MP_QSTR_color_depth);
     }
 
@@ -184,7 +182,7 @@ void common_hal_picodvi_framebuffer_construct(picodvi_framebuffer_obj_t *self,
     size_t pio_index = NUM_PIOS;
     int free_state_machines[4]; // We may find all four free. We only use the first three.
     for (size_t i = 0; i < NUM_PIOS; i++) {
-        PIO pio = pio_instances[i];
+        PIO pio = pio_get_instance(i);
         uint8_t free_count = 0;
         for (size_t sm = 0; sm < NUM_PIO_STATE_MACHINES; sm++) {
             if (!pio_sm_is_claimed(pio, sm)) {
@@ -244,7 +242,7 @@ void common_hal_picodvi_framebuffer_construct(picodvi_framebuffer_obj_t *self,
     }
 
     for (size_t i = 0; i < 3; i++) {
-        rp2pio_statemachine_never_reset(pio_instances[pio_index], free_state_machines[i]);
+        rp2pio_statemachine_never_reset(pio_get_instance(pio_index), free_state_machines[i]);
     }
 
     // For the output.
@@ -253,7 +251,7 @@ void common_hal_picodvi_framebuffer_construct(picodvi_framebuffer_obj_t *self,
     self->color_depth = color_depth;
 
     self->dvi.timing = timing;
-    self->dvi.ser_cfg.pio = pio_instances[pio_index];
+    self->dvi.ser_cfg.pio = pio_get_instance(pio_index);
     self->dvi.ser_cfg.sm_tmds[0] = free_state_machines[0];
     self->dvi.ser_cfg.sm_tmds[1] = free_state_machines[1];
     self->dvi.ser_cfg.sm_tmds[2] = free_state_machines[2];
@@ -385,6 +383,10 @@ int common_hal_picodvi_framebuffer_get_height(picodvi_framebuffer_obj_t *self) {
 
 int common_hal_picodvi_framebuffer_get_color_depth(picodvi_framebuffer_obj_t *self) {
     return self->color_depth;
+}
+
+int common_hal_picodvi_framebuffer_get_native_frames_per_second(picodvi_framebuffer_obj_t *self) {
+    return 60;
 }
 
 bool common_hal_picodvi_framebuffer_get_grayscale(picodvi_framebuffer_obj_t *self) {
